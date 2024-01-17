@@ -1,0 +1,6 @@
+gitlab_container:
+  image: gitlab/gitlab-ee:latest
+  name: gitlab
+  hostname: gitlab.example.com
+  env:
+    GITLAB_HOME: /home/vagrant/gitlab-home
