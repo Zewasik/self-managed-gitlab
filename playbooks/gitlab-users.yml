@@ -1,0 +1,19 @@
+- name: Add Gitlab user and repository
+  hosts: git_group
+
+  tasks:
+    - name: Get password for Gitlab root user
+      shell: "sudo docker exec -it gitlab grep -oP '(?<=Password: )\\S+' /etc/gitlab/initial_root_password"
+      register: gitlab_root_password
+    - name: Wait for Gitlab running
+      shell: while [ "`docker inspect -f \{\{.State.Health.Status\}\} gitlab`" != "healthy" ]; do sleep 2; done
+    - name: Add Gitlab user testtest
+      gitlab_user:
+        api_username: root
+        api_password: "{{ gitlab_root_password.stdout }}"
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        name: "{{ user.name }}"
+        username: "{{ user.username }}"
+        password: "{{ password }}"
+        email: "{{ user.email }}"
+        confirm: no

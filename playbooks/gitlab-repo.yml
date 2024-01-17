@@ -1,0 +1,16 @@
+- name: Add Gitlab repositories for testtest user
+  hosts: git_group
+
+  tasks:
+    - name: Create new repositories (Inventory, Billing, Api Gateway, Infrastructure) for the user
+      gitlab_project:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: "{{ user.username }}"
+        api_password: "{{ password }}"
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "Inventory-app"
+        - "Billing-app"
+        - "Api-gateway-app"
+        - "Infrastructure-configuration"
