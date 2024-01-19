@@ -4,21 +4,28 @@
   tasks:
     - name: Create home folder for Gitlab
       file:
-        path: "{{ gitlab_container.env.GITLAB_HOME}}"
+        path: "{{ container.env.GITLAB_HOME }}"
         state: directory
+    - name: Install library for Docker python
+      pip:
+        name: requests
     - name: Run Gitlab instance in Docker
-      shell: |
-        docker run --detach \
-          --hostname {{ gitlab_container.hostname }} \
-          --name {{ gitlab_container.name }} \
-          --publish 443:443 --publish 80:80 --publish 2222:22 \
-          --restart always \
-          --volume $GITLAB_HOME/config:/etc/gitlab \
-          --volume $GITLAB_HOME/logs:/var/log/gitlab \
-          --volume $GITLAB_HOME/data:/var/opt/gitlab \
-          --shm-size 256m \
-          {{ gitlab_container.image }}
-      environment: "{{ gitlab_container.env }}"
+      community.docker.docker_container:
+        detach: true
+        name: "{{ container.name }}"
+        image: "{{ container.gitlab_image }}"
+        hostname: "{{ container.hostname }}"
+        ports:
+          - "443:443"
+          - "80:80"
+          - "2222:22"
+        restart_policy: "always"
+        volumes:
+          - "{{ container.env.GITLAB_HOME }}/config:/etc/gitlab"
+          - "{{ container.env.GITLAB_HOME }}/logs:/var/log/gitlab"
+          - "{{ container.env.GITLAB_HOME }}/data:/var/opt/gitlab"
+        shm_size: "256M"
+        env: "{{ container.gitlab_config }}"
     - name: Install libraries for Gitlab python
       pip:
         name: python-gitlab

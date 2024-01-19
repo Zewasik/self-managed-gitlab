@@ -1,5 +1,7 @@
 - name: Add Gitlab user and repository
   hosts: git_group
+  vars:
+    new_admin_password: "{{ lookup('ansible.builtin.password', 'credentials/root/password') }}"
 
   tasks:
     - name: Get password for Gitlab root user
@@ -7,13 +9,24 @@
       register: gitlab_root_password
     - name: Wait for Gitlab running
       shell: while [ "`docker inspect -f \{\{.State.Health.Status\}\} gitlab`" != "healthy" ]; do sleep 2; done
-    - name: Add Gitlab user testtest
-      gitlab_user:
+    - name: Update password for root user
+      community.general.gitlab_user:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
         api_username: root
         api_password: "{{ gitlab_root_password.stdout }}"
+        username: root
+        name: "Administrator"
+        email: "admin@example.com"
+        password: "{{ new_admin_password }}"
+        isadmin: true
+        access_level: owner
+    - name: Add Gitlab user testtest
+      community.general.gitlab_user:
         api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
-        name: "{{ user.name }}"
-        username: "{{ user.username }}"
+        api_username: root
+        api_password: "{{ new_admin_password }}"
+        name: "{{ admin.name }}"
+        username: "{{ admin.username }}"
         password: "{{ password }}"
-        email: "{{ user.email }}"
+        email: "{{ admin.email }}"
         confirm: no
