@@ -5,7 +5,10 @@
 
   tasks:
     - name: Get password for Gitlab root user
-      shell: "sudo docker exec -it gitlab grep -oP '(?<=Password: )\\S+' /etc/gitlab/initial_root_password"
+      community.docker.docker_container_exec:
+        container: "{{ container.name }}"
+        tty: true
+        command: "grep -oP '(?<=Password: )\\S+' /etc/gitlab/initial_root_password"
       register: gitlab_root_password
     - name: Wait for Gitlab running
       shell: while [ "`docker inspect -f \{\{.State.Health.Status\}\} gitlab`" != "healthy" ]; do sleep 2; done

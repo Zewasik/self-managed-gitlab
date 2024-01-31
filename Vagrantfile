@@ -14,8 +14,8 @@ Vagrant.configure("2") do |config|
   SHELL
   
   config.vm.provider "virtualbox" do |vb|
-    vb.cpus = 3
-    vb.memory = 10240
+    vb.cpus = 2
+    vb.memory = 8192
   end
 
   config.vm.network "public_network"

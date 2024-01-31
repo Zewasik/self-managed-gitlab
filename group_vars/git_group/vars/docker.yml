@@ -3,6 +3,6 @@ container:
   name: gitlab
   hostname: gitlab.example.com
   env:
-    GITLAB_HOME: /home/vagrant/gitlab-home
+    GITLAB_HOME: ~/gitlab-home
   gitlab_config:
     GITLAB_OMNIBUS_CONFIG: "external_url 'http://{{ hostvars[inventory_hostname].inventory_hostname }}'"
