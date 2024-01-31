@@ -1,0 +1,54 @@
+- name: Add shared Gitlab Runners
+  hosts: git_group
+  vars:
+    admin_password: "{{ lookup('ansible.builtin.file', 'credentials/root/password') }}"
+
+  tasks:
+    - name: Install library for json_query
+      ansible.builtin.pip:
+        name: jmespath
+        executable: pip3.10
+    - name: Create runners for projects
+      community.general.gitlab_runner:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: root
+        api_password: "{{ admin_password }}"
+        access_level: not_protected
+        description: "Shared code-keeper Machine {{ item }}"
+        state: present
+        run_untagged: true
+      register: return_value
+      with_sequence: start=1 end=10
+    - name: Extract runners and store in a list
+      set_fact:
+        runners: "{{ return_value.results | json_query('[].runner') }}"
+    - name: Create volume for runners
+      community.docker.docker_volume:
+        name: gitlab-runner-config
+    - name: Create gitlab-runner instance using Docker
+      community.docker.docker_container:
+        name: gitlab-runner
+        image: gitlab/gitlab-runner:latest
+        detach: true
+        restart_policy: always
+        volumes:
+          - gitlab-runner-config:/etc/gitlab-runner
+          - /var/run/docker.sock:/var/run/docker.sock
+    - name: Register runners using Docker
+      community.docker.docker_container:
+        name: "docker_runner_{{ item.id }}"
+        image: gitlab/gitlab-runner
+        auto_remove: true
+        volumes:
+          - gitlab-runner-config:/etc/gitlab-runner
+        command: >
+          register 
+          --non-interactive 
+          --url "http://{{ hostvars[inventory_hostname].inventory_hostname }}/" 
+          --token "{{ item.token }}" 
+          --executor "docker" 
+          --description "docker-runner-{{ item.id }}"
+          --docker-image alpine:latest 
+          --docker-privileged
+          --docker-volumes "/certs/client"
+      loop: "{{ runners }}"

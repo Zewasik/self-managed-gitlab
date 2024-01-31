@@ -1,0 +1,39 @@
+- name: Add Gitlab repositories for testtest user
+  hosts: git_group
+
+  tasks:
+    - name: Add variables to Inventory, Billing and Api-gateway
+      community.general.gitlab_project_variable:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: "{{ admin.username }}"
+        api_password: "{{ password }}"
+        project: "{{ admin.username }}/{{ item }}"
+        purge: false
+        variables:
+          - name: DOCKER_USERt
+            value: "{{ api_enviroment.DOCKER_USER }}"
+            protected: true
+          - name: DOCKER_PASSt
+            value: "{{ api_enviroment.DOCKER_PASS }}"
+            protected: true
+          - name: SNYK_TOKENt
+            value: "{{ api_enviroment.SNYK_TOKEN }}"
+            protected: true
+      loop:
+        - "Billing-app"
+        - "Inventory-app"
+        - "Api-gateway-app"
+    - name: Add variables to Infrastructure-configuration
+      community.general.gitlab_project_variable:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: "{{ admin.username }}"
+        api_password: "{{ password }}"
+        project: "{{ admin.username }}/Infrastructure-configuration"
+        state: present
+        variables:
+          - name: AWS_ACCESS_KEY_IDt
+            value: "{{ amazon_access.AWS_ACCESS_KEY_ID }}"
+            protected: true
+          - name: AWS_SECRET_ACCESS_KEYt
+            value: "{{ amazon_access.AWS_SECRET_ACCESS_KEY }}"
+            protected: true
