@@ -1,0 +1,113 @@
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Terraform.gitlab-ci.yml
+
+include:
+  - template: Terraform/Base.gitlab-ci.yml # https://gitlab.com/gitlab-org/gitlab/blob/master/lib/gitlab/ci/templates/Terraform/Base.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.gitlab-ci.yml # https://gitlab.com/gitlab-org/gitlab/blob/master/lib/gitlab/ci/templates/Jobs/SAST-IaC.gitlab-ci.yml
+
+stages:
+  - validate
+  - test
+  - build_staging
+  - deploy_staging
+  - build_production
+  - deploy_production
+
+fmt:
+  extends: .terraform:fmt
+  needs: []
+
+validate:
+  extends: .terraform:validate
+  needs: []
+
+build_staging:
+  extends: .terraform:build
+  stage: build_staging
+  script:
+  - gitlab-terraform plan -var="environment=$CI_ENVIRONMENT_NAME"
+  - gitlab-terraform plan-json
+  environment:
+    name: staging
+    action: prepare
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}
+  allow_failure: false
+  artifacts:
+    paths:
+      - ${TF_ROOT}/plan.cache
+    reports:
+      terraform: ${TF_ROOT}/plan.json
+
+deploy_staging:
+  extends: .terraform:deploy
+  stage: deploy_staging
+  dependencies:
+    - build_staging
+  environment:
+    name: staging
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      when: always
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}
+  allow_failure: false
+
+cleanup_staging:
+  extends: .terraform:destroy
+  stage: deploy_staging
+  dependencies:
+    - build_staging
+  script:
+    - gitlab-terraform destroy -var="environment=$CI_ENVIRONMENT_NAME"
+  environment:
+    name: staging
+  allow_failure: true
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}
+
+build_production:
+  extends: .terraform:build
+  stage: build_production
+  dependencies: 
+    - build_staging
+  script:
+  - gitlab-terraform plan -var="environment=$CI_ENVIRONMENT_NAME"
+  - gitlab-terraform plan-json
+  environment:
+    name: production
+    action: prepare
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}
+
+deploy_production:
+  extends: .terraform:deploy
+  stage: deploy_production
+  dependencies:
+    - build_production
+  environment:
+    name: production
+  allow_failure: false
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}
+
+cleanup_production:
+  extends: .terraform:destroy
+  stage: deploy_production
+  dependencies:
+    - build_staging
+  script:
+    - gitlab-terraform destroy -var="environment=$CI_ENVIRONMENT_NAME"
+  environment:
+    name: production
+  allow_failure: true
+  variables:
+    TF_STATE_NAME: ${CI_ENVIRONMENT_NAME}
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}

@@ -1,0 +1,111 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"
+      when: never
+    - when: always
+
+stages:
+  - build
+  - test
+  - scan
+  - containerization
+  - deploy
+
+variables:
+  APP_IMAGE_NAME: $DOCKER_USER/inventory-app
+  DB_IMAGE_NAME: $DOCKER_USER/inventory-database
+  DB_IMAGE_TAG: 1.0.0
+
+.dind:
+  image: docker:25
+  services:
+    - name: docker:25-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_DRIVER: overlay2
+
+build_app:
+  stage: build
+  image: node:18.16
+  before_script:
+    - npm install
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - "build"
+
+run_linter:
+  stage: test
+  image: node:18.16
+  dependencies: []
+  before_script:
+    - npm install
+  script:
+    - npm run lint
+
+analyze_vulnerabilities:
+  stage: scan
+  image: node:18.16
+  dependencies: []
+  before_script:
+    - npm install
+    - npx snyk auth $SNYK_TOKEN
+  script:
+    - npx snyk test --json | npx snyk-to-html -o snyk_results.html
+  artifacts:
+    when: always
+    paths:
+      - snyk_results.html
+
+container_database:
+  extends: .dind
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - database.Dockerfile
+        - sql/**/*
+  stage: containerization
+  before_script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  script:
+    - docker build -t $DB_IMAGE_NAME:$DB_IMAGE_TAG -f database.Dockerfile .
+    - docker push $DB_IMAGE_NAME:$DB_IMAGE_TAG
+
+container_app:
+  extends: .dind
+  only:
+    - main
+  stage: containerization
+  needs:
+    - build_app
+    - job: analyze_vulnerabilities
+      artifacts: false
+    - job: container_database
+      optional: true
+  before_script:
+    - apk add --no-cache jq curl
+    - export IMAGE_TAG=$(cat package.json | jq -r .version)
+    - sh post-or-update-group-vars.sh TF_VAR_INVENTORY_APP_IMAGE $APP_IMAGE_NAME $IMAGE_TAG
+    - sh post-or-update-group-vars.sh TF_VAR_INVENTORY_DB_IMAGE $DB_IMAGE_NAME $DB_IMAGE_TAG
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  script:
+    - docker build -t $APP_IMAGE_NAME:$IMAGE_TAG .
+    - docker push $APP_IMAGE_NAME:$IMAGE_TAG
+  artifacts:
+    paths: ["build.env"]
+    reports:
+      dotenv: build.env
+
+
+trigger_deploy:
+  stage: deploy
+  allow_failure: true
+  needs:
+    - container_app
+  trigger:
+    project: movie-service/Infrastructure-configuration
+    strategy: depend
+    forward:
+      yaml_variables: true
+      pipeline_variables: true

@@ -1,0 +1,32 @@
+{
+  "name": "billing-app",
+  "version": "1.1.2",
+  "description": "server for saving billings",
+  "main": "server.js",
+  "scripts": {
+    "start": "node bundle.js",
+    "build": "webpack --mode production",
+    "lint": "tsc --noEmit && eslint app"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4",
+    "@types/node": "^20.11.5",
+    "@types/pg": "^8.10.9",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "snyk": "^1.1273.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0",
+    "file-loader": "^6.2.0"
+  }
+}
