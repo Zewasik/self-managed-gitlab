@@ -28,8 +28,8 @@
         api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
         api_username: root
         api_password: "{{ new_admin_password }}"
-        name: "{{ admin.name }}"
-        username: "{{ admin.username }}"
+        name: "{{ default_user.name }}"
+        username: "{{ default_user.username }}"
         password: "{{ password }}"
-        email: "{{ admin.email }}"
+        email: "{{ default_user.email }}"
         confirm: no

@@ -4,12 +4,19 @@
   tasks:
     - name: Wait for Gitlab running
       shell: while [ "`docker inspect -f \{\{.State.Health.Status\}\} gitlab`" != "healthy" ]; do sleep 2; done
+    - name: "Create GitLab Group"
+      community.general.gitlab_group:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: "{{ default_user.username }}"
+        api_password: "{{ password }}"
+        name: movie-service
     - name: Create new repositories (Inventory, Billing, Api Gateway, Infrastructure) for the user
       gitlab_project:
         api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
-        api_username: "{{ admin.username }}"
+        api_username: "{{ default_user.username }}"
         api_password: "{{ password }}"
         name: "{{ item }}"
+        group: movie-service
         state: present
       loop:
         - "Inventory-app"
