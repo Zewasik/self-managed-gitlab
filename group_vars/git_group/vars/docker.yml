@@ -1,5 +1,5 @@
 container:
-  gitlab_image: gitlab/gitlab-ee:latest
+  gitlab_image: gitlab/gitlab-ee:16.8.2-ee.0
   name: gitlab
   hostname: gitlab.example.com
   env:

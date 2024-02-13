@@ -5,18 +5,18 @@
     - name: Add variables to Inventory, Billing and Api-gateway
       community.general.gitlab_project_variable:
         api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
-        api_username: "{{ admin.username }}"
+        api_username: "{{ default_user.username }}"
         api_password: "{{ password }}"
-        project: "{{ admin.username }}/{{ item }}"
+        project: "{{ default_user.username }}/{{ item }}"
         purge: false
         variables:
-          - name: DOCKER_USERt
+          - name: DOCKER_USER
             value: "{{ api_enviroment.DOCKER_USER }}"
             protected: true
-          - name: DOCKER_PASSt
+          - name: DOCKER_PASS
             value: "{{ api_enviroment.DOCKER_PASS }}"
             protected: true
-          - name: SNYK_TOKENt
+          - name: SNYK_TOKEN
             value: "{{ api_enviroment.SNYK_TOKEN }}"
             protected: true
       loop:
@@ -26,14 +26,41 @@
     - name: Add variables to Infrastructure-configuration
       community.general.gitlab_project_variable:
         api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
-        api_username: "{{ admin.username }}"
+        api_username: "{{ default_user.username }}"
         api_password: "{{ password }}"
-        project: "{{ admin.username }}/Infrastructure-configuration"
+        project: "{{ default_user.username }}/Infrastructure-configuration"
         state: present
         variables:
-          - name: AWS_ACCESS_KEY_IDt
+          - name: AWS_ACCESS_KEY_ID
             value: "{{ amazon_access.AWS_ACCESS_KEY_ID }}"
             protected: true
-          - name: AWS_SECRET_ACCESS_KEYt
+          - name: AWS_SECRET_ACCESS_KEY
             value: "{{ amazon_access.AWS_SECRET_ACCESS_KEY }}"
+            protected: true
+    - name: Create personal access token using Gitlab console
+      community.docker.docker_container_exec:
+        container: "{{ container.name }}"
+        command: |
+          bash -c "gitlab-rails console -e production <<EOF | grep glpat
+          user = User.find_by(username: '{{ default_user.username }}')
+          expiration_date = Time.now + 1.months
+          personal_access_token = PersonalAccessToken.create!(
+          user: user,
+          name: 'Ansible generated token',
+          scopes: ['api'],
+          expires_at: expiration_date
+          )
+          puts personal_access_token.token
+          EOF"
+      register: token_output
+    - name: Set personal access token to variables for group
+      community.general.gitlab_group_variable:
+        api_url: "http://{{ hostvars[inventory_hostname].inventory_hostname }}"
+        api_username: "{{ default_user.username }}"
+        api_password: "{{ password }}"
+        group: "{{ default_user.username }}/movie-service"
+        purge: false
+        variables:
+          - name: PRIVATE_TOKEN
+            value: "{{ token_output.stdout }}"
             protected: true

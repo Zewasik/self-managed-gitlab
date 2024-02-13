@@ -1,5 +1,5 @@
 ---
-admin:
+default_user:
   email: test@example.com
   username: project_admin
   name: Project Administrator
