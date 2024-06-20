@@ -1,4 +1,4 @@
-# code-keeper
+# self-managed-gitlab
 
 This documentation will help you understand the architecture, setup, and usage of the complete pipeline made to create, scan and deploy a microservices-based application.
 
