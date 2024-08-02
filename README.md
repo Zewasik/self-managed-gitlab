@@ -12,7 +12,7 @@ This documentation will help you understand the architecture, setup, and usage o
 
 ## 1. Project Overview <a name="project-overview"></a>
 
-Code-keeper sets up a self-managed Gitlab instance, its runners and repositories for the projects (Infrastructure-configuration, Api-gateway-app, Inventory and Billing). After everything's done, you can use the instance to upload the microservices to repo which will automatically create the corresponding dockerhub image and trigger deployment to AWS cloud. 
+The project sets up a self-managed Gitlab instance, its runners and repositories for the projects (Infrastructure-configuration, Api-gateway-app, Inventory and Billing). After everything's done, you can use the instance to upload the microservices to repo which will automatically create the corresponding dockerhub image and trigger deployment to AWS cloud. 
 
 ## 2. Getting Started <a name="getting-started"></a>
 
@@ -29,13 +29,13 @@ Make sure you have the following installed on your machine:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Zewasik/code-keeper.git
+   git clone https://github.com/Zewasik/self-managed-gitlab.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd code-keeper
+   cd self-managed-gitlab
    ```
 
 3. Run code-keeper.sh script to initialize Ansible vault variables and create the infrastructure: 
